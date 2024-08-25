@@ -1,0 +1,39 @@
+name: Development Deployment
+
+on:
+  push:
+    branches:
+      - develop
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v2
+
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v1
+
+    - name: Log in to DockerHub
+      uses: docker/login-action@v1
+      with:
+        username: ${{ secrets.DOCKER_USERNAME }}
+        password: ${{ secrets.DOCKER_PASSWORD }}
+
+    - name: Setup SSH for Deployment
+      run: |
+        mkdir -p ~/.ssh
+        echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/id_rsa
+        chmod 600 ~/.ssh/id_rsa
+        ssh-keyscan ${{ secrets.LOCAL_DEV_SERVER_IP }} >> ~/.ssh/known_hosts
+
+    - name: Build and push image
+      run: |
+        docker build -t ${{ secrets.DOCKER_USERNAME }}/simple-nodejs-app:dev .
+        docker push ${{ secrets.DOCKER_USERNAME }}/simple-nodejs-app:dev
+
+    - name: Deploy to Development Server
+      run: |
+        ssh -o StrictHostKeyChecking=no -i ~/.ssh/id_rsa ${{ secrets.LOCAL_DEV_SERVER_USERNAME }}@${{ secrets.LOCAL_DEV_SERVER_IP }} 'docker pull ${{ secrets.DOCKER_USERNAME }}/simple-nodejs-app:dev && docker-compose -f /path/to/docker-compose.yml up -d'
