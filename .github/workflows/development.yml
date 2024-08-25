@@ -35,5 +35,10 @@ jobs:
         docker push ${{ secrets.DOCKER_USERNAME }}/simple-nodejs-app:dev
 
     - name: Deploy to Development Server
-      run: |
-        ssh -o StrictHostKeyChecking=no -i ~/.ssh/id_rsa ${{ secrets.LOCAL_DEV_SERVER_USERNAME }}@${{ secrets.LOCAL_DEV_SERVER_IP }} 'docker pull ${{ secrets.DOCKER_USERNAME }}/simple-nodejs-app:dev && docker-compose -f /path/to/docker-compose.yml up -d'
+  run: |
+    ssh -o StrictHostKeyChecking=no -i ~/.ssh/id_rsa ${{ secrets.LOCAL_DEV_SERVER_USERNAME }}@${{ secrets.LOCAL_DEV_SERVER_IP }} '
+    docker pull ${{ secrets.DOCKER_USERNAME }}/simple-nodejs-app:dev &&
+    docker stop simple-nodejs-app || true &&
+    docker rm simple-nodejs-app || true &&
+    docker run -d --name simple-nodejs-app -p 3000:3000 ${{ secrets.DOCKER_USERNAME }}/simple-nodejs-app:dev'
+
